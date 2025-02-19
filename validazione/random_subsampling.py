@@ -8,7 +8,7 @@ class RandomSubsampling(ValidationProcess):
     
     # Classe che gestisce il processo di validazione Random Subsampling per il modello KNN.
 
-    def __init__(self, test_size, iterazioni):
+    def _init_(self, test_size, iterazioni):
         """
         Inizializza la strategia Random Subsampling con una dimensione del set di test.
 
@@ -17,7 +17,7 @@ class RandomSubsampling(ValidationProcess):
             iterazioni (int): Numero di iterazioni K da svolgere sul dataframe (deve essere un numero positivo).
 
         Raises:
-            ValueError: Se `test_size` non è compreso tra 0 e 1.
+            ValueError: Se test_size non è compreso tra 0 e 1.
             ValueError: Se 'iterazioni' non è positivo.
         """
 
@@ -33,15 +33,14 @@ class RandomSubsampling(ValidationProcess):
         self.test_size = test_size
 
 
-    def split_data(self, data: pd.DataFrame, labels: pd.Series, k_vicini: int) -> list[tuple[list[int], list[int]]]:
-        # Divide i dati casualmente in train e test
-        risultati=[]
-        n_campioni=len(data)
-        n_test=int(n_campioni*self.test_size)
+    def split_data(self, data: pd.DataFrame, labels: pd.Series, k_vicini: int) -> list[tuple[list[int], list[int], list[float]]]:
+        risultati = []
+        n_campioni = len(data)
+        n_test = int(n_campioni * self.test_size)
 
         for _ in range(self.n_iterazioni):
-            n_campioni=len(data)
-            n_test=int(n_campioni*self.test_size)
+            n_campioni = len(data)
+            n_test = int(n_campioni * self.test_size)
 
             # Verifica che il numero di campioni nel set di test non sia uguale al totale o maggiore del totale
             if n_test == 0:
@@ -53,15 +52,23 @@ class RandomSubsampling(ValidationProcess):
             shuffled_indices = np.random.permutation(n_campioni)
             test_indici = shuffled_indices[:n_test]
             train_indici = shuffled_indices[n_test:]
+            
             # Divisione dataframe
             train_data, test_data = data.iloc[train_indici], data.iloc[test_indici]
             train_labels, test_labels = labels.iloc[train_indici], labels.iloc[test_indici]
+            
             # Processo/Predizione
             KNN = CustomKNN(k_vicini)
             KNN.fit(train_data, train_labels)
-            pred = KNN.predict_batch(test_data) # Valori ottenuti
-             # Costruisce la lista di tuple (y_real, y_pred)
-            risultati.append((test_labels.tolist(), pred.tolist()))
+            
+            # Predizioni delle etichette
+            pred = KNN.predict_batch(test_data)
+            
+            # Calcolare le probabilità per ciascun esempio nel test set
+            probabilities = [KNN.predict_proba(pd.Series(point))[4.0] for point in test_data.itertuples(index=False)]
+
+            
+            # Costruire la lista di tuple (y_real, y_pred, probabilità)
+            risultati.append((test_labels.tolist(), pred.tolist(), probabilities))
 
         return risultati
-
