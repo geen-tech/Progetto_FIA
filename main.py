@@ -3,6 +3,7 @@ from validazione.validazione_main import setup_knn_validation
 from preprocesso.preprocesso_main import preprocess_data
 from preprocesso.mapped_dati import ValidationMapper
 from metriche import Visualizer
+from metriche import Metrics
 
 def main():
     print("Benvenuto! Questo programma ti aiuterà ad analizzare un dataset di cellule attraverso diverse tecniche di validazione")
@@ -33,13 +34,15 @@ def main():
         mapped_data = ValidationMapper.map_static(validation_data)
         
         # 6 Creazione dell'oggetto per la visualizzazione delle metriche
-        visualizzatore = Visualizer(mapped_data)
+        metriche_selezionate = Metrics.scegli_metriche() 
+        visualizzatore = Visualizer(mapped_data, metriche_selezionate)
 
         # 7 Calcolo e visualizzazione delle metriche
         visualizzatore.visualize_metrics()
 
         # 8 Salvataggio delle metriche in un file Excel
         visualizzatore.save("metrics_output.xlsx")
+
 
     except FileNotFoundError:
         print("Errore: Il file specificato non esiste. Controlla il percorso e riprova.")

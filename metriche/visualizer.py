@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict
 from .metrics import Metrics
 
 class Visualizer:
-    def __init__(self, input: list[tuple[list[int], list[int], list[float]]]):
+    def __init__(self, input: list[tuple[list[int], list[int], list[float]]], metriche_selezionate):
         """
         Inizializza l'oggetto per visualizzare le metriche.
 
@@ -14,13 +14,14 @@ class Visualizer:
         self.input = input
         self.calculator = Metrics()
         self.metrics = {}
+        self.metriche_selezionate = metriche_selezionate
 
     def visualize_metrics(self) -> None:
         """
         Calcola e visualizza tutte le metriche disponibili.
         """
         # Calcola le metriche utilizzando il MetricsCalculator
-        self.metrics = self.calculator.calcolo_metriche(self.input)
+        self.metrics = self.calculator.calcolo_metriche(self.input, self.metriche_selezionate)
 
         # Plotta le metriche
         self._plot_(self.metrics)

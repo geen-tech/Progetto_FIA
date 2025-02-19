@@ -8,60 +8,55 @@ class Metrics:
         '''
         pass
     
-    def calcolo_metriche(self, input: list[tuple[list[int], list[int], list[float]]]) -> Dict[str, float]:
-        print("Input ricevuto:", input)
-
-        aggregated_metrics = {
-            "Accuracy Rate": [],
-            "Area Under Curve": [],
-            "Sensitivity": [],
-            "Geometric Mean": [],
-            "Specificity": [],
-            "Error Rate": [],
-        }
+    def calcolo_metriche(self, input: list[tuple[list[int], list[int], list[float]]], metriche_selezionate: List[str]) -> Dict[str, float]:
+        
+        aggregated_metrics = {metrica: [] for metrica in metriche_selezionate}
 
         # Calcola metriche per ogni coppia di y_real e predicted_proba
         for i, (y_real, y_pred, predicted_proba) in enumerate(input):
-            print(f"\nElaborazione del gruppo {i+1}:")
-            print(f"y_real: {y_real}")
-            print(f"y_pred: {y_pred}")
-            print(f"predicted_proba: {predicted_proba}")
+            # print(f"\nElaborazione del gruppo {i+1}:")
+            # print(f"y_real: {y_real}")
+            # print(f"y_pred: {y_pred}")
+            # print(f"predicted_proba: {predicted_proba}")
 
             tp, tn, fp, fn = self._matrix_confusion(y_real, y_pred)
-            print(f"Confusion Matrix -> TP: {tp}, TN: {tn}, FP: {fp}, FN: {fn}")
+            # print(f"Confusion Matrix -> TP: {tp}, TN: {tn}, FP: {fp}, FN: {fn}")
 
             try:
-                accuracy = self._accuracy_rate(tp, tn, fp, fn)
-                print(f"Accuracy: {accuracy}")
-
-                auc = self._area_under_curve(y_real, predicted_proba)  # Passa le probabilità
-                print(f"AUC: {auc}")
-
-                sensitivity = self._sensitivity(tp, fn)
-                print(f"Sensitivity: {sensitivity}")
-
-                gmean = self._geometric_mean(tp, tn, fp, fn)
-                print(f"Geometric Mean: {gmean}")
-
-                specificity = self._specificity(tn, fp)
-                print(f"Specificity: {specificity}")
-
-                error_rate = self._error_rate(tp, tn, fp, fn)
-                print(f"Error Rate: {error_rate}")
-
-                # Aggiungi le metriche agli aggregati
-                aggregated_metrics["Accuracy Rate"].append(accuracy)
-                aggregated_metrics["Area Under Curve"].append(auc)
-                aggregated_metrics["Sensitivity"].append(sensitivity)
-                aggregated_metrics["Geometric Mean"].append(gmean)
-                aggregated_metrics["Specificity"].append(specificity)
-                aggregated_metrics["Error Rate"].append(error_rate)
+                if "Accuracy Rate" in metriche_selezionate:
+                    accuracy = self._accuracy_rate(tp, tn, fp, fn)
+                    print(f"Accuracy: {accuracy}")
+                    aggregated_metrics["Accuracy Rate"].append(accuracy)
+                
+                if "Area Under Curve" in metriche_selezionate:
+                    auc = self._area_under_curve(y_real, predicted_proba)
+                    print(f"AUC: {auc}")
+                    aggregated_metrics["Area Under Curve"].append(auc)
+                
+                if "Sensitivity" in metriche_selezionate:
+                    sensitivity = self._sensitivity(tp, fn)
+                    print(f"Sensitivity: {sensitivity}")
+                    aggregated_metrics["Sensitivity"].append(sensitivity)
+                
+                if "Geometric Mean" in metriche_selezionate:
+                    gmean = self._geometric_mean(tp, tn, fp, fn)
+                    print(f"Geometric Mean: {gmean}")
+                    aggregated_metrics["Geometric Mean"].append(gmean)
+                
+                if "Specificity" in metriche_selezionate:
+                    specificity = self._specificity(tn, fp)
+                    print(f"Specificity: {specificity}")
+                    aggregated_metrics["Specificity"].append(specificity)
+                
+                if "Error Rate" in metriche_selezionate:
+                    error_rate = self._error_rate(tp, tn, fp, fn)
+                    print(f"Error Rate: {error_rate}")
+                    aggregated_metrics["Error Rate"].append(error_rate)
 
             except Exception as e:
                 print("Errore durante il calcolo delle metriche:", e)
 
         # Calcola la media solo se ci sono valori, altrimenti restituisce 0.0
-        print("\nMetriche aggregate:", aggregated_metrics)
         return {key: (sum(values) / len(values) if values else 0.0) for key, values in aggregated_metrics.items()}
     
     def _matrix_confusion(self, y_real: List[int], y_pred: List[int]) -> Tuple[int, int, int, int]:
@@ -72,7 +67,7 @@ class Metrics:
         fn = sum(1 for r, p in zip(y_real, y_pred) if r == 1 and p == 0)
         print(f"Matrix Confusion -> TP: {tp}, TN: {tn}, FP: {fp}, FN: {fn}")
         return tp, tn, fp, fn
-
+    
     @staticmethod
     def scegli_metriche() -> List[str]:
         print("Scegli le metriche da calcolare:")
@@ -121,10 +116,10 @@ class Metrics:
                 else:
                     return selected_metrics
 
+
     def _accuracy_rate(self, tp: int, tn: int, fp: int, fn: int) -> float:
         total = tp + tn + fp + fn
         accuracy = (tp + tn) / total if total > 0 else 0.0
-        print(f"Calcolato Accuracy: {accuracy}")
         return accuracy
 
     def _area_under_curve(self, y_test: np.ndarray, predicted_proba: np.ndarray) -> float:
@@ -178,31 +173,26 @@ class Metrics:
 
         # Calcolo dell'AUC con la formula dell'integrazione numerica (metodo del trapezio)
         auc = np.trapz(TPR, FPR)
-        print(f"AUC calcolato: {auc}")
 
         return float(auc)
 
     def _sensitivity(self, tp: int, fn: int) -> float:
         actual_positive = tp + fn
         sensitivity = tp / actual_positive if actual_positive > 0 else 0.0
-        print(f"Sensitivity: {sensitivity}")
         return sensitivity
     
     def _geometric_mean(self, tp: int, tn: int, fp: int, fn: int) -> float:
         sensitivity = self._sensitivity(tp, fn)
         specificity = self._specificity(tn, fp)
         gmean = np.sqrt(sensitivity * specificity) if sensitivity * specificity > 0 else 0.0
-        print(f"Geometric Mean: {gmean}")
         return gmean
     
     def _specificity(self, tn: int, fp: int) -> float:
         actual_negative = tn + fp
         specificity = tn / actual_negative if actual_negative > 0 else 0.0
-        print(f"Specificity: {specificity}")
         return specificity
     
     def _error_rate(self, tp: int, tn: int, fp: int, fn: int) -> float:
         total = tp + tn + fp + fn
         error_rate = (fp + fn) / total if total > 0 else 0.0
-        print(f"Error Rate: {error_rate}")
         return error_rate
