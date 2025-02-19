@@ -6,16 +6,16 @@ class KNNValidation_main:
         self.k = 5  # Valore di default
         self.strategy = None
 
-    def get_k_value(self, max_attempts=2):
+    def get_k_value(self, scaled_data,  max_attempts=2):
         attempts = 0
         while attempts < max_attempts:
             k_utente = input("Inserisci il valore di k per il KNN (numero di vicini da utilizzare): ").strip()
             try:
                 k = int(k_utente)
-                if k <= 0 or k >= 600:
+                if k <= 0 or k >= len(scaled_data):
                     attempts += 1
                     if attempts != max_attempts:
-                        print(f"k deve essere maggiore di 0 e minore di 600. Hai {max_attempts - attempts} tentativi rimanenti. Riprova.")
+                        print(f"k deve essere maggiore di 0 e minore della lunghezza del data frame. Hai {max_attempts - attempts} tentativi rimanenti. Riprova.")
                         continue
                 else:
                     self.k = k
@@ -66,6 +66,6 @@ def setup_knn_validation(scaled_data):
     Imposta la validazione KNN e restituisce l'istanza di KNNValidation_main con i valori selezionati.
     """
     selector = KNNValidation_main()
-    selector.get_k_value()
+    selector.get_k_value(scaled_data)
     selector.get_validation_strategy()
     return selector.k, selector.strategy
