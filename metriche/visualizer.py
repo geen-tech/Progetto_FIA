@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict
 from .metrics import Metrics
 
 class Visualizer:
-    def __init__(self, input: List[Tuple[List[int], List[int]]]):
+    def __init__(self, input: list[tuple[list[int], list[int], list[float]]]):
         """
         Inizializza l'oggetto per visualizzare le metriche.
 
