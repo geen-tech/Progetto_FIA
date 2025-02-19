@@ -84,6 +84,3 @@ class CustomKNN:
         
         predictions = points.apply(self.predict, axis=1)
         return predictions
-
-
-
