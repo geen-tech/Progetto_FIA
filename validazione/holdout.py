@@ -24,7 +24,7 @@ class Holdout(ValidationProcess):
         
         self.test_size = test_size
 
-    def split_data(self, data: pd.DataFrame, labels: pd.Series, k_vicini: int) -> list[tuple[list[int], list[int]]]:
+    def split_data(self, data: pd.DataFrame, labels: pd.Series, k_vicini: int) -> list[tuple[list[int], list[int], list[float]]]:
         n_samples = len(data)
         n_test = int(n_samples * self.test_size)  # Calcola il numero di campioni nel test set
 
@@ -38,14 +38,26 @@ class Holdout(ValidationProcess):
         shuffled_indices = np.random.permutation(n_samples)
         test_indices = shuffled_indices[:n_test]
         train_indices = shuffled_indices[n_test:]
+        
         # Divisione del dataframe in base alle percentuali richieste
         train_data, test_data = data.iloc[train_indices], data.iloc[test_indices]
         train_labels, test_labels = labels.iloc[train_indices], labels.iloc[test_indices]
+        
         # Addestramento e predizione
         KNN = CustomKNN(k_vicini) 
         KNN.fit(train_data, train_labels)
-        pred = KNN.predict_batch(test_data) # Valori ottenuti
-        # Costruisce la lista di tuple (y_real, y_pred)
-        risultati = [(test_labels.tolist(), pred.tolist())]
+        
+        # Predizioni delle etichette e probabilità per ogni esempio nel test set
+        y_pred = KNN.predict_batch(test_data)
+        
+        # Debug: stampiamo la struttura di predict_proba per il primo esempio
+        sample_proba = KNN.predict_proba(pd.Series(test_data.iloc[0]))
+        print(f"Probabilità per il primo esempio: {sample_proba}")
+        
+        # Supponiamo che la classe positiva sia 4.0, estraiamo la probabilità per la classe '2.0'
+        probabilities = [KNN.predict_proba(pd.Series(point))[4.0] for point in test_data.itertuples(index=False)]
+
+        # Costruisce la lista di tuple (y_real, y_pred, probabilità)
+        risultati = [(test_labels.tolist(), y_pred.tolist(), probabilities)]
 
         return risultati
