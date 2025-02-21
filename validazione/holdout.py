@@ -50,10 +50,6 @@ class Holdout(ValidationProcess):
         # Predizioni delle etichette e probabilità per ogni esempio nel test set
         y_pred = KNN.predict_batch(test_data)
         
-        # Debug: stampiamo la struttura di predict_proba per il primo esempio
-        sample_proba = KNN.predict_proba(pd.Series(test_data.iloc[0]))
-        print(f"Probabilità per il primo esempio: {sample_proba}")
-        
         # Supponiamo che la classe positiva sia 4.0, estraiamo la probabilità per la classe '2.0'
         probabilities = [KNN.predict_proba(pd.Series(point))[4.0] for point in test_data.itertuples(index=False)]
 

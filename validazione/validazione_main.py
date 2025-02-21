@@ -45,10 +45,12 @@ class KNNValidation_main:
                 iterazioni = int(input("Inserisci il numero di iterazioni (default 5): ") or 5)
                 training_size = float(input("Inserisci la percentuale di training (0-1, default 0.8): ") or 0.8)
                 self.strategy = RandomSubsampling(iterazioni=iterazioni, test_size=1 - training_size)
+                self.K=iterazioni
             elif method == 'C':
                 iterazioni = int(input("Inserisci il numero di iterazioni (default 5): ") or 5)
                 training_size = float(input("Inserisci la percentuale di training (0-1, default 0.8): ") or 0.8)
                 self.strategy = StratifiedValidation(iterazioni=iterazioni, test_size=1 - training_size)
+                self.K=iterazioni
             else:
                 print("Scelta non valida. Uso Holdout con test_size=0.2 di default.")
                 self.strategy = Holdout(test_size=0.2)
@@ -59,7 +61,7 @@ class KNNValidation_main:
     def run(self):
         self.get_k_value()
         self.get_validation_strategy()
-        return self.k, self.strategy
+        return self.k, self.strategy, self.K
     
 
 def setup_knn_validation(scaled_data):
@@ -69,4 +71,4 @@ def setup_knn_validation(scaled_data):
     selector = KNNValidation_main()
     selector.get_k_value(scaled_data)
     selector.get_validation_strategy()
-    return selector.k, selector.strategy
+    return selector.k, selector.strategy, selector.K

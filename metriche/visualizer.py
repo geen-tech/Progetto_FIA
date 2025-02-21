@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from typing import List, Tuple, Dict
-from metriche.metrics import Metrics
+from typing import Dict
+from .metrics import Metrics
 
 class Visualizer:
     def __init__(self, input: list[tuple[list[int], list[int], list[float]]], metriche_selezionate):
@@ -15,33 +15,51 @@ class Visualizer:
         self.calculator = Metrics()
         self.metriche_selezionate=metriche_selezionate
         self.metrics = {}
-
+        self.y_real = [row[0] for row in input] 
+        self.y_real = [item for sublist in self.y_real for item in sublist] 
+        self.y_pred = [row[1] for row in input]
+        self.y_pred = [item for sublist in self.y_pred for item in sublist]
+        self.pred_proba = [row[2] for row in input] 
+        self.pred_proba = [item for sublist in self.pred_proba for item in sublist] 
+        
     def visualize_metrics(self) -> None:
         """
-        Calcola e visualizza tutte le metriche disponibili.
+        Calcola e visualizza tutte le metriche disponibili
         """
         # Calcola le metriche
-        self.metrics = self.calculator.calcolo_metriche(self.input, self.metriche_selezionate)
+        self.metrics = self.calculator.calcolo_metriche(self.y_real, self.y_pred, self.pred_proba, self.metriche_selezionate)
         
-        # Per ogni gruppo nel tuo input, mostriamo la Confusion Matrix e la curva ROC
-        for i, (y_real, y_pred, predicted_proba) in enumerate(self.input, start=1):
-            print(f"\n--- Plot del gruppo n. {i} ---")
+        # Calcolo della matrice di confusione
+        tp, tn, fp, fn = self.calculator._matrix_confusion(self.y_real, self.y_pred)
+        confusion_dict = {
+            "TP": tp,
+            "TN": tn,
+            "FP": fp,
+            "FN": fn
+        }
+        self.calculator.plot_conf_matrix(confusion_dict)
 
-           
-            # Mostra Curva ROC
-            self.calculator.plot_roc_curve(y_real, predicted_proba)
+        # Mostra Curva ROC
+        self.calculator.plot_roc_curve(self.y_real, self.pred_proba)
         
         # Grafico a barre delle metriche aggregate
         self.plot(self.metrics)
 
-    
+    def media(self, K = 1) -> dict:
+        """
+        Calcola le metriche medie sui vari gruppi per Random e Stratified
+        """
+        # calcoliamo le metriche
+        sample_size = int(len(self.y_real)/K)
+        print(len(self.y_real))
+        self.metrics = self.calculator.compute_batch_metrics(self.y_real, self.y_pred, self.pred_proba, K, sample_size, self.metriche_selezionate)
+        self.plot(self.metrics)
+
+        return
     
     def save(self, filename: str = "metriche.xlsx") -> None:
         """
         Salva quello calcolato in un file Excel
-
-        Args:
-            filename (str): Nome del file Excel "metriche.xlsx"
         """
         if not self.metrics:
             print("Nessuna metrica da salvare. Esegui prima 'visualize_metrics()'.")
@@ -61,9 +79,6 @@ class Visualizer:
     def plot(self, metrics: Dict[str, float]) -> None:
         """
         Grafica le metriche in un grafico a barre
-
-        Args:
-            metrics (dict): Dizionario contenente i valori delle metriche
         """
         plt.figure(figsize=(10, 6))
         plt.bar(metrics.keys(), metrics.values(), color=['blue', 'green', 'orange', 'red', 'purple', 'cyan'])
@@ -73,3 +88,4 @@ class Visualizer:
         plt.xticks(rotation=45)
         plt.grid(axis="y", linestyle="--", alpha=0.7)
         plt.show()
+

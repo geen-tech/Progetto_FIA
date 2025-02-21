@@ -84,3 +84,36 @@ class CustomKNN:
         
         predictions = points.apply(self.predict, axis=1)
         return predictions
+    
+    def predict_proba(self, point: pd.Series) -> dict:
+        """
+        Calcola la probabilità di ciascuna classe per un nuovo punto basandosi sui dati di riferimento.
+        """
+        if self.data is None or self.labels is None:
+            raise ValueError("Il classificatore non è stato addestrato. Esegui 'fit' prima di usare 'predict_proba'.")
+        
+        if not isinstance(point, pd.Series):
+            raise ValueError("Il punto da classificare deve essere una Serie di Pandas.")
+        
+        # Calcola le distanze tra il punto e tutti gli altri dati registrati
+        distances = self.data.apply(lambda row: self._euclidean_distance(row.values, point.values), axis=1)
+        
+        # Seleziona gli indici dei punti più vicini
+        nearest_neighbors = distances.nsmallest(self.k).index
+        # print(f"Indici dei {self.k} vicini più prossimi: {nearest_neighbors}")
+        
+        # Conta le occorrenze delle etichette dei vicini più vicini
+        nearest_labels = self.labels.loc[nearest_neighbors]
+        label_count = Counter(nearest_labels)
+        # print(f"Conteggio delle etichette nei vicini: {label_count}")
+        
+        # Calcola la probabilità di ciascuna classe
+        total_neighbors = len(nearest_labels)
+        
+        # Aggiungi entrambe le classi 2.0 e 4.0, anche se la probabilità è zero
+        prob = {2.0: label_count.get(2.0, 0) / total_neighbors, 4.0: label_count.get(4.0, 0) / total_neighbors}
+        
+        # Stampa la probabilità continua per ciascuna classe
+        # print(f"Probabilità continua per il punto: {prob}")
+        
+        return prob

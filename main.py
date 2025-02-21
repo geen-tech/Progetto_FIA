@@ -24,7 +24,7 @@ def main():
             raise ValueError("Preprocessing fallito: il dataset non è valido.")
         
         # 3 Configurazione della validazione KNN
-        k, strategy = setup_knn_validation(scaled_data)
+        k, strategy, K= setup_knn_validation(scaled_data)
         
         # 4 Suddivisione del dataset per la validazione
         print(f"Generazione delle divisioni utilizzando la strategia: {strategy.__class__.__name__}...")
@@ -36,16 +36,21 @@ def main():
         # 6 Creazione dell'oggetto per la visualizzazione delle metriche
         metriche_selezionate = Metrics.scegli_metriche()
         
-    
         # 7 Creazione dell'oggetto per la visualizzazione delle metriche
         visualizzatore = Visualizer(mapped_data, metriche_selezionate)
 
-        # 8 Calcolo e visualizzazione delle metriche
-        visualizzatore.visualize_metrics()
+        # 8 Calcolo metriche in base alla strategy scelta
+        if strategy.__class__.__name__ == "RandomSubsampling" or strategy.__class__.__name__ == "StratifiedValidation":
+            print("Viene svolta la media dei valori delle metriche dei singoli gruppi")
+            visualizzatore.media(K)
+            
+        else:
+            print("Calcolo metriche...")
+            visualizzatore.visualize_metrics()
+
 
         # 9 Salvataggio delle metriche in un file Excel
         visualizzatore.save("metrics_output.xlsx")
-
 
     except FileNotFoundError:
         print("Errore: Il file specificato non esiste. Controlla il percorso e riprova.")
