@@ -8,7 +8,7 @@ class RandomSubsampling(ValidationProcess):
     
     # Classe che gestisce il processo di validazione Random Subsampling per il modello KNN.
 
-    def _init_(self, test_size, iterazioni):
+    def __init__(self, test_size, iterazioni):
         """
         Inizializza la strategia Random Subsampling con una dimensione del set di test.
 

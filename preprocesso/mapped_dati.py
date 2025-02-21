@@ -1,5 +1,5 @@
 class ValidationMapper:
-    def _init_(self, mapping={2: 0, 4: 1}):
+    def __init__(self, mapping={2: 0, 4: 1}):
         """
         Inizializza il mapper con un dizionario di mappatura predefinito.
 

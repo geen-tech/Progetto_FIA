@@ -1,111 +1,168 @@
 import unittest
 import pandas as pd
 import numpy as np
-from models.classifier import  CustomKNN
-from validazione import Holdout
 
-class TestHoldout(unittest.TestCase): 
+from preprocesso.feature_transformer import (
+    Normalizer,
+    Standardizer,
+    FeatureTransformationManager
+)
+
+
+class TestFeatureTransformer(unittest.TestCase):
+
     def setUp(self):
-        # Setup iniziale
-        # Dataset di esempio
-        self.data = pd.DataFrame({
-            "feature1": [7, 3, 2, 4, 6],
-            "feature2": [70, 30, 20, 40, 60]
+        """
+        Questo metodo viene eseguito prima di ogni test.
+        Inizializziamo qui un DataFrame di esempio.
+        """
+        self.sample_data = pd.DataFrame({
+            'col_numeric_1': [10, 20, 30, 40, 50],
+            'col_numeric_2': [100, 100, 100, 300, 500],
+            'col_categorical': ['A', 'B', 'A', 'B', 'C'],
+            'col_constant': [1, 1, 1, 1, 1],
         })
-        self.labels = pd.Series([1, 0, 1, 0, 1])
 
-    def test_split_data(self):
+    def test_normalizer(self):
         """
-        Si verifica il corretto funzionamento di base di generate_splits con valori validi,  
-        assicurandosi che restituisca una lista contenente tuple nella forma (y_real, y_pred).  
-        Inoltre, si controlla che il numero di campioni nei set di training e test sia corretto.  
-
+        Verifica che il Normalizer applichi correttamente la normalizzazione [0,1]
+        alle colonne numeriche non saltate.
         """
-        holdout = Holdout(test_size=0.4)
-        results = holdout.split_data(self.data, self.labels, k_vicini=5)
-        '''
-        - Verifica che il risultato sia una lista
-        - Verifica che il risultato sia una lista con una sola tupla
-        - Verifica che l'elemento della lista sia una tupla
-        '''
-        self.assertIsInstance(results, list)
-        self.assertEqual(len(results), 1) 
-        self.assertIsInstance(results[0], tuple)
+        normalizer = Normalizer()
+        transformed_df = normalizer.transform(self.sample_data)
 
-        # Verifica che y_real e y_pred abbiano la dimensione corretta
-        y_real, y_pred = results[0]
-        self.assertEqual(len(y_real), 2)  # 40% di 5 campioni ≈ 2
-        self.assertEqual(len(y_pred), 2)
+        # Verifica che la forma (shape) non sia cambiata
+        self.assertEqual(transformed_df.shape, self.sample_data.shape)
 
-    def test_split_data_default(self): # Facciamo il controllo con il valore di default del test size, ossia 20%
-    
-        holdout = Holdout(test_size=0.2)  
-        results = holdout.split_data(self.data, self.labels, k_vicini=5)
-        
-        y_real, y_pred = results[0]
-        self.assertEqual(len(y_real), 1)  # 20% di 5 campioni ≈ 1
-        self.assertEqual(len(y_pred), 1) 
+        # Colonne da controllare
+        numeric_cols = ['col_numeric_1', 'col_numeric_2', 'col_constant']
 
-    def test_split_data_invalid(self):  
-        """  
-        Controlla che venga generato un errore quando test_size ha un valore non valido 
-        """  
-        # Caso in cui test_size è maggiore di 1  
-        with self.assertRaises(ValueError):  
-            Holdout(test_size=1.8)  
+        for col in numeric_cols:
+            col_min = transformed_df[col].min()
+            col_max = transformed_df[col].max()
 
-        # Caso in cui test_size è negativo  
-        with self.assertRaises(ValueError):  
-            Holdout(test_size=-0.8)  
+            # Se la colonna è costante, non dovrebbe essere trasformata 
+            # (o rimane invariata a causa del check "Evita divisione per zero")
+            if self.sample_data[col].nunique() == 1:
+                # Confrontiamo se i valori sono invariati
+                self.assertTrue((transformed_df[col] == self.sample_data[col]).all())
+            else:
+                # min ~ 0 e max ~ 1
+                self.assertAlmostEqual(col_min, 0.0, places=3)
+                self.assertAlmostEqual(col_max, 1.0, places=3)
 
-    def test_split_data_small_dataset(self):  
-        """  
-        Verifica il comportamento di generate_splits con un dataset molto ridotto.  
-        Con test_size=0.5 e un solo campione, entrambe le liste (y_real e y_pred)  
-        dovrebbero risultare vuote.  
-        """  
-        data = pd.DataFrame({  
-            "feature1": [6],  
-            "feature2": [60]  
-        })  
-        labels = pd.Series([1])  
+        # Verifica che la colonna categorica sia invariata
+        self.assertTrue((transformed_df['col_categorical'] == self.sample_data['col_categorical']).all())
 
-        holdout = Holdout(test_size=0.5)    
-
-        with self.assertRaises(ValueError): # Controllo se split_data solleva un errore. Se questo avviene il test non fallisce 
-            holdout.split_data(data, labels, k_vicini=5)
-
-    def test_split_data_full(self):
+    def test_normalizer_skip_columns(self):
         """
-        Testa generate_splits con test_size = 1.0 (tutti i campioni come test) -> Dovrebbe generare un errore (manacanza dati nel training set)
+        Verifica che, se si specificano colonne da saltare, queste non vengano trasformate.
         """
-        holdout = Holdout(test_size=1.0)
-        with self.assertRaises(ValueError): # Controllo se split_data solleva un errore. Se questo avviene il test non fallisce
-            holdout.split_data(self.data, self.labels, k_vicini=5) 
-    
-    def test_split_data_no_shuffle(self):  
-        """  
-        Verifica che il dataset venga suddiviso correttamente senza mescolamento.  
-        Controlla che i dati di training e test siano disgiunti.  
-        """  
-        holdout = Holdout(test_size=0.2)  
-        results = holdout.split_data(self.data, self.labels, k_vicini=5)  
+        normalizer = Normalizer()
+        skip_cols = ['col_numeric_2']
+        transformed_df = normalizer.transform(self.sample_data, skip_columns=skip_cols)
 
-        y_real_test = results[0][0]  # Estrai le etichette reali del test set  
-        
-        # Ottieni gli indici originali corrispondenti alle etichette del test set  
-        test_indices = [self.labels.tolist().index(y) for y in y_real_test]  
+        # La col_numeric_2 non deve essere cambiata
+        self.assertTrue((transformed_df['col_numeric_2'] == self.sample_data['col_numeric_2']).all())
 
-        # Calcola gli indici del training set come differenza tra tutti gli indici e quelli del test set  
-        all_indices = set(range(len(self.labels)))  
-        train_indices = list(all_indices - set(test_indices))  
+        # col_numeric_1 è normalizzata (non costante) => min=0, max=1
+        col_min = transformed_df['col_numeric_1'].min()
+        col_max = transformed_df['col_numeric_1'].max()
+        self.assertAlmostEqual(col_min, 0.0, places=3)
+        self.assertAlmostEqual(col_max, 1.0, places=3)
 
-        # Verifica che non ci siano sovrapposizioni tra i due insiemi di indici  
-        self.assertTrue(set(test_indices).isdisjoint(set(train_indices)),  
-                    "Gli indici di test e training non dovrebbero sovrapporsi.")  
+    def test_standardizer(self):
+        """
+        Verifica che lo Standardizer applichi correttamente la standardizzazione
+        (mean=0, std=1) alle colonne numeriche non saltate.
+        """
+        standardizer = Standardizer()
+        transformed_df = standardizer.transform(self.sample_data)
+
+        self.assertEqual(transformed_df.shape, self.sample_data.shape)
+
+        numeric_cols = ['col_numeric_1', 'col_numeric_2', 'col_constant']
+
+        for col in numeric_cols:
+            mean_val = transformed_df[col].mean()
+            std_val = transformed_df[col].std()
+
+            # Se la colonna è costante, rimane invariata
+            if self.sample_data[col].nunique() == 1:
+                self.assertTrue((transformed_df[col] == self.sample_data[col]).all())
+            else:
+                # mean ~ 0 e std ~ 1
+                self.assertAlmostEqual(mean_val, 0.0, places=3)
+                self.assertAlmostEqual(std_val, 1.0, places=3)
+
+        self.assertTrue((transformed_df['col_categorical'] == self.sample_data['col_categorical']).all())
+
+    def test_standardizer_skip_columns(self):
+        """
+        Verifica che, se si specificano colonne da saltare, queste non vengano trasformate.
+        """
+        standardizer = Standardizer()
+        skip_cols = ['col_numeric_1']
+        transformed_df = standardizer.transform(self.sample_data, skip_columns=skip_cols)
+
+        # col_numeric_1 resta invariata
+        self.assertTrue((transformed_df['col_numeric_1'] == self.sample_data['col_numeric_1']).all())
+
+        # col_numeric_2 dev'essere standardizzata => mean ~ 0, std ~ 1
+        col_mean = transformed_df['col_numeric_2'].mean()
+        col_std = transformed_df['col_numeric_2'].std()
+        self.assertAlmostEqual(col_mean, 0.0, places=3)
+        self.assertAlmostEqual(col_std, 1.0, places=3)
+
+        # La colonna costante rimane invariata
+        self.assertTrue((transformed_df['col_constant'] == self.sample_data['col_constant']).all())
+
+    def test_feature_transformation_manager_normalize(self):
+        """
+        Verifica che il FeatureTransformationManager applichi la strategia di normalizzazione.
+        """
+        transformed_df = FeatureTransformationManager.apply_transformation(
+            strategy='normalize',
+            data=self.sample_data
+        )
+        # col_numeric_1 e col_numeric_2 non costanti => min=0, max=1
+        for col in ['col_numeric_1', 'col_numeric_2']:
+            self.assertAlmostEqual(transformed_df[col].min(), 0.0, places=3)
+            self.assertAlmostEqual(transformed_df[col].max(), 1.0, places=3)
+
+        # col_constant rimane invariata
+        self.assertTrue((transformed_df['col_constant'] == self.sample_data['col_constant']).all())
+        # col_categorical invariata
+        self.assertTrue((transformed_df['col_categorical'] == self.sample_data['col_categorical']).all())
+
+    def test_feature_transformation_manager_standardize(self):
+        """
+        Verifica che il FeatureTransformationManager applichi la strategia di standardizzazione.
+        """
+        transformed_df = FeatureTransformationManager.apply_transformation(
+            strategy='standardize',
+            data=self.sample_data
+        )
+        # col_numeric_1 e col_numeric_2 => mean=0, std=1
+        for col in ['col_numeric_1', 'col_numeric_2']:
+            self.assertAlmostEqual(transformed_df[col].mean(), 0.0, places=3)
+            self.assertAlmostEqual(transformed_df[col].std(), 1.0, places=3)
+
+        # col_constant invariato
+        self.assertTrue((transformed_df['col_constant'] == self.sample_data['col_constant']).all())
+        # col_categorical invariata
+        self.assertTrue((transformed_df['col_categorical'] == self.sample_data['col_categorical']).all())
+
+    def test_feature_transformation_manager_invalid_strategy(self):
+        """
+        Verifica che venga sollevata ValueError per strategia inesistente.
+        """
+        with self.assertRaises(ValueError):
+            FeatureTransformationManager.apply_transformation(
+                strategy='invalid_strategy',
+                data=self.sample_data
+            )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
-
-

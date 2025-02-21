@@ -1,11 +1,11 @@
 import pandas as pd
 from .file_parser import ParserDispatcher
-from .missing_data_manager import MissingDataStrategyManager
+from .missing_data_manager import MissingDataStrategyManager, MissingDataHandler
 from .feature_transformer import FeatureTransformationManager
 
 
 class DataPreprocessor:
-    def _init_(self, file_path):
+    def __init__(self, file_path):
         self.file_path = file_path
         self.data = pd.DataFrame()
         self.scaled_data = pd.DataFrame()
@@ -52,6 +52,8 @@ class DataPreprocessor:
             missing_strategy = 'remove'
 
         try:
+            handler = MissingDataHandler()
+            self.data = handler.drop_rows_with_missing_target(self.data, target_col='classtype_v1')
             self.data = MissingDataStrategyManager.handle_missing_data(strategy=missing_strategy, data=self.data)
         except Exception as e:
             print(f"Errore durante la gestione dei valori mancanti: {e}. Procedo con i dati originali.")

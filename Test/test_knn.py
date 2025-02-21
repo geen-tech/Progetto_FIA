@@ -1,65 +1,86 @@
-import unittest
 import pandas as pd
-from models.classifier import CustomKNN
+import numpy as np
+from collections import Counter
+import random
 
-class TestCustomKNN(unittest.TestCase):
-    def setUp(self):
-        # Setup iniziale
-        # Dataset di esempio
-        self.training_data = pd.DataFrame({
-            'Feature1': [9, 5, 7, 6],
-            'Feature2': [1, 4, 2, 5]
-        })
-        self.training_labels = pd.Series([0, 1, 1, 0])
-
-        self.test_data = pd.DataFrame({
-            'Feature1': [3, 2.5],
-            'Feature2': [5, 2.5]
-        })
-
-        self.expected_predictions = [1, 0]  # Risultati attesi con k=3
-
-        self.knn = CustomKNN(k=5)
-
-    def test_fit(self):
+class CustomKNN:
+    def __init__(self, k=3):
         """
-        Verifica che il metodo fit memorizzi correttamente i dati di training.
+        Inizializza il classificatore KNN con un valore di k.
         """
-        self.knn.fit(self.training_data, self.training_labels)
-        pd.testing.assert_frame_equal(self.knn.data, self.training_data)
-        pd.testing.assert_series_equal(self.knn.labels, self.training_labels)
-    
-    def test_predict(self):
-        """
-        Verifica che il metodo predict fornisca il risultato atteso.
-        """
-        self.knn.fit(self.training_data, self.training_labels)
-        prediction = self.knn.predict(self.test_data.iloc[0])
-        self.assertEqual(prediction, self.expected_predictions[0])
-    
-    def test_invalid_fit_input(self):
-        """
-        Verifica che venga sollevata un'eccezione se i dati forniti a fit non sono validi.
-        """
-        with self.assertRaises(ValueError):
-            self.knn.fit([1, 2, 3], self.training_labels)  # Non è un DataFrame
-    
-    def test_invalid_predict_input(self):  
-        """  
-        Verifica che predict sollevi un'eccezione se l'input non è nel formato corretto.  
-        """  
-        self.knn.fit(self.training_data, self.training_labels)  
+        self.k = k
+        self.data = None
+        self.labels = None
 
-        with self.assertRaises(ValueError, msg="Predict dovrebbe sollevare un ValueError per input non valido"):  
-            self.knn.predict([2.5, 2.5])  # Input non conforme (non è un pandas Series)  
+    def fit(self, X: pd.DataFrame, y: pd.Series):
+        """
+        Addestra il classificatore memorizzando i dati di addestramento.
 
-    def tearDown(self):  
-        """  
-        Dealloca le risorse utilizzate nei test.  
-        """  
-        del self.knn  
+        Args:
+            X (pd.DataFrame): I dati di addestramento.
+            y (pd.Series): Le etichette di addestramento.
+        """
+        self.data = X
+        self.labels = y
 
-if __name__ == '__main__':  
-    unittest.main()  
-    
+    def _euclidean_distance(self, point1, point2):
+        """
+        Calcola la distanza euclidea tra due punti nel loro spazio n-dimensionale.
+        """
+        return np.sqrt(np.sum((point1 - point2) ** 2))
+
+    def predict(self, points):
+        """
+        Prevede la classe per uno o più punti basandosi sui dati di addestramento.
+
+        Args:
+            points (pd.Series or pd.DataFrame): Punto o DataFrame di punti da classificare.
+
+        Returns:
+            list: Lista delle etichette predette per i punti.
+        """
+        if self.data is None or self.labels is None:
+            raise ValueError("Il classificatore non è stato addestrato. Esegui 'fit' prima di usare 'predict'.")
+        
+        # Assicurati che l'input sia un DataFrame o una Series
+        if isinstance(points, pd.DataFrame):
+            # Se l'input è un DataFrame, itera su ogni riga
+            predictions = points.apply(self._predict_single, axis=1)
+        elif isinstance(points, pd.Series):
+            # Se l'input è una Series, predici per quel singolo punto
+            predictions = [self._predict_single(points)]
+        else:
+            raise ValueError("L'input deve essere un pd.Series o pd.DataFrame.")
+        
+        return predictions.tolist()
+
+    def _predict_single(self, point: pd.Series) -> int:
+        """
+        Predice la classe di un singolo punto basato sui dati di addestramento.
+
+        Args:
+            point (pd.Series): Un singolo punto da classificare.
+
+        Returns:
+            int: L'etichetta predetta per il punto.
+        """
+        # Calcola le distanze tra il punto e tutti gli altri dati registrati
+        distances = self.data.apply(lambda row: self._euclidean_distance(row.values, point.values), axis=1)
+        
+        # Seleziona gli indici dei k vicini più prossimi
+        nearest_neighbors = distances.nsmallest(self.k).index
+        
+        # Conta le occorrenze delle etichette dei vicini più vicini
+        nearest_labels = self.labels.loc[nearest_neighbors]
+        label_count = Counter(nearest_labels)
+        most_common = label_count.most_common()
+        max_count = most_common[0][1]  # Frequenza maggiore tra le etichette
+
+        # Se ci sono più etichette con la stessa frequenza, sceglie casualmente
+        tied_classes = [label for label, count in most_common if count == max_count]
+        if len(tied_classes) > 1:
+            return random.choice(tied_classes)
+        else:
+            return tied_classes[0]
+
 

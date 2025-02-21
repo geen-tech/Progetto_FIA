@@ -5,6 +5,7 @@ class KNNValidation_main:
     def __init__(self):
         self.k = 5  # Valore di default
         self.strategy = None
+        self.K=None
 
     def get_k_value(self, scaled_data,  max_attempts=2):
         attempts = 0

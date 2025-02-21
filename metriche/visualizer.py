@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Dict
-from .metrics import Metrics
+from metriche.metrics import Metrics
 
 class Visualizer:
     def __init__(self, input: list[tuple[list[int], list[int], list[float]]], metriche_selezionate):
@@ -13,18 +13,28 @@ class Visualizer:
         """
         self.input = input
         self.calculator = Metrics()
+        self.metriche_selezionate=metriche_selezionate
         self.metrics = {}
-        self.metriche_selezionate = metriche_selezionate
 
     def visualize_metrics(self) -> None:
         """
         Calcola e visualizza tutte le metriche disponibili.
         """
-        # Calcola le metriche utilizzando il MetricsCalculator
+        # Calcola le metriche
         self.metrics = self.calculator.calcolo_metriche(self.input, self.metriche_selezionate)
+        
+        # Per ogni gruppo nel tuo input, mostriamo la Confusion Matrix e la curva ROC
+        for i, (y_real, y_pred, predicted_proba) in enumerate(self.input, start=1):
+            print(f"\n--- Plot del gruppo n. {i} ---")
 
-        # Plotta le metriche
-        self._plot_(self.metrics)
+           
+            # Mostra Curva ROC
+            self.calculator.plot_roc_curve(y_real, predicted_proba)
+        
+        # Grafico a barre delle metriche aggregate
+        self.plot(self.metrics)
+
+    
     
     def save(self, filename: str = "metriche.xlsx") -> None:
         """
@@ -48,7 +58,7 @@ class Visualizer:
         Specifica che viene utilizzato il motore openpyxl per scrivere il file
         """
     
-    def _plot_(self, metrics: Dict[str, float]) -> None:
+    def plot(self, metrics: Dict[str, float]) -> None:
         """
         Grafica le metriche in un grafico a barre
 
@@ -63,27 +73,3 @@ class Visualizer:
         plt.xticks(rotation=45)
         plt.grid(axis="y", linestyle="--", alpha=0.7)
         plt.show()
-
-if __name__ == "__main__":
-    # Esempio
-    validation = validation = [
-    ([1, 0, 1, 1, 0, 1, 0, 0, 1, 1], [1, 0, 1, 1, 0, 1, 0, 0, 1, 1]),  
-    ([0, 1, 1, 0, 0, 1, 1, 0, 1, 0], [0, 1, 0, 0, 1, 1, 1, 0, 1, 1]),  
-    ([1, 1, 0, 1, 0, 1, 0, 1, 1, 0], [0, 0, 1, 0, 1, 0, 1, 0, 0, 1]),  
-    ([0, 0, 1, 1, 1, 0, 0, 1, 0, 1], [0, 0, 1, 0, 1, 0, 0, 1, 1, 1]),  
-    ([1, 1, 0, 0, 1, 0, 1, 0, 1, 1], [0, 0, 1, 1, 0, 1, 0, 1, 0, 0]),  
-    ([0, 1, 1, 0, 1, 1, 0, 0, 1, 0], [0, 1, 1, 0, 1, 0, 0, 0, 1, 0]),  
-    ([1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0], 
-     [1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0]),  
-    ([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], 
-     [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]),  
-]
-
-# Creazione dell'oggetto PerformanceMetricsVisualizer
-    esempio = Visualizer(validation)
-
-# Calcolo e visualizzazione delle metriche
-    esempio.visualize_metrics()
-
-# Salvataggio delle metriche in un file Excel
-    esempio.save("esempio.xlsx")

@@ -8,7 +8,7 @@ from models.classifier import CustomKNN
 
 class StratifiedValidation(ValidationProcess):
 
-    def _init_(self, iterazioni, test_size):
+    def __init__(self, iterazioni, test_size):
         """
         :param iterazioni: Numero di split/training-testing da eseguire.
         :param test_size: Frazione di campioni da destinare al test (0 < test_size < 1).
