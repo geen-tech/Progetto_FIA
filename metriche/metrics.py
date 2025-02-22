@@ -110,20 +110,11 @@ class Metrics:
         """
         Calcola le metriche sui diversi gruppi e salva la distribuzione sulle folds
         """
-        print("DENTRO REALI")
-        print(y_true)
-        print("DENTRO PRED")
-        print(y_pred)
         metrics_calc = Metrics()  # Creiamo una nuova istanza della classe Metrics per calcolare le metriche
-        metrics_data = {
-            "fold": [],
-            "Accuracy Rate": [],
-            "Error Rate": [],
-            "Sensitivity": [],
-            "Specificity": [],
-            "Geometric Mean": [],
-            "Area Under Curve": []
-        }
+        metrics_data = {"fold": []}
+
+        for metrica in metriche_selezionate:
+            metrics_data[metrica] = []
 
         # Itera su ogni fold per creare i batch
         for fold in range(num_folds):
@@ -138,14 +129,10 @@ class Metrics:
             # Calcola le metriche per questo batch
             metrics = metrics_calc.calcolo_metriche(y_true, y_pred, predicted_probs, metriche_selezionate)
 
-            # Salva i risultati per il fold corrente
             metrics_data["fold"].append(fold + 1)
-            metrics_data["Accuracy Rate"].append(metrics["Accuracy Rate"])
-            metrics_data["Error Rate"].append(metrics["Error Rate"])
-            metrics_data["Sensitivity"].append(metrics["Sensitivity"])
-            metrics_data["Specificity"].append(metrics["Specificity"])
-            metrics_data["Geometric Mean"].append(metrics["Geometric Mean"])
-            metrics_data["Area Under Curve"].append(metrics["Area Under Curve"])
+            for metrica in metriche_selezionate:
+                metrics_data[metrica].append(metrics.get(metrica, 0.0))  # Default a 0.0 se non presente
+
 
         # Converte in un DataFrame per calcolare la media
         df_metrics = pd.DataFrame(metrics_data)

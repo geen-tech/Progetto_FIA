@@ -51,9 +51,18 @@ class Visualizer:
         """
         # calcoliamo le metriche
         sample_size = int(len(self.y_real)/K)
-        print(len(self.y_real))
         self.metrics = self.calculator.compute_batch_metrics(self.y_real, self.y_pred, self.pred_proba, K, sample_size, self.metriche_selezionate)
         self.plot(self.metrics)
+        self.calculator.plot_roc_curve(self.y_real, self.pred_proba)
+        # Calcolo della matrice di confusione
+        tp, tn, fp, fn = self.calculator._matrix_confusion(self.y_real, self.y_pred)
+        confusion_dict = {
+            "TP": tp,
+            "TN": tn,
+            "FP": fp,
+            "FN": fn
+        }
+        self.calculator.plot_conf_matrix(confusion_dict)
 
         return
     
@@ -88,4 +97,3 @@ class Visualizer:
         plt.xticks(rotation=45)
         plt.grid(axis="y", linestyle="--", alpha=0.7)
         plt.show()
-
